@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cursor Creative Lab</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
+</head>
+<body>
+
+  <div class="ui-panel top-left">
+    <img src="resources/CursorCreative.png" alt="Cursor Creative Lab" class="main-logo">
+    
+    <div class="custom-dropdown">
+      <button class="dropdown-toggle" id="bucket-toggle">
+        <span>Logo</span>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
+      </button>
+      
+      <ul class="dropdown-menu" id="bucket-menu">
+        <li class="active">Logo</li>
+        <li>Product UI</li>
+        <li>Editorial/ Blog</li>
+        <li>Social Media</li>
+        <li>Data Viz</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="ui-panel bottom-left">
+    <ul class="art-styles" id="art-styles-list">
+      <li>Noise Shader</li>
+      <li>Motion Blur</li>
+      <li>Mesh</li>
+      <li>Pen Plotter</li>
+      <li>Procedural</li>
+      <li>Line Art</li>
+      <li>Kinetic Type</li>
+      <li>3D WebGL</li>
+      <li>Raster/Matrix</li>
+      <li>ASCII</li>
+      <li>Flow Fields</li>
+      <li>Particle Systems</li>
+      <li>Generative Data Viz</li>
+    </ul>
+  </div>
+
+  <div class="ui-panel top-right">
+    <div class="controls-panel">
+      <div class="panel-header">Controls</div>
+      <div id="dynamic-controls"></div>
+    </div>
+  </div>
+
+  <div class="ui-panel bottom-right">
+    <button class="export-btn">Export</button>
+  </div>
+
+  <script src="cube.js"></script>
+  <script src="mesh.js"></script>
+  <script src="flow.js"></script>
+  <script src="lines.js"></script> 
+  <script src="shader.js"></script>
+  <script src="bio.js"></script>
+  
+  <script src="sketch.js"></script>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const toggleBtn = document.getElementById('bucket-toggle');
+      const toggleBtnText = toggleBtn.querySelector('span');
+      const dropdownMenu = document.getElementById('bucket-menu');
+      const dropdownItems = dropdownMenu.querySelectorAll('li');
+      
+      const artStylesList = document.getElementById('art-styles-list');
+      const controlsPanelContainer = document.querySelector('.top-right');
+      const exportPanelContainer = document.querySelector('.bottom-right');
+
+      const categoryMapping = {
+        'Logo': [
+          'Noise Shader', 'Motion Blur', 'Mesh', 'Pen Plotter', 'Procedural', 'Line Art', 
+          'Kinetic Type', '3D WebGL', 'Raster/Matrix', 'ASCII', 
+          'Flow Fields', 'Particle Systems', 'Generative Data Viz'
+        ],
+        'Product UI': ['Noise Shader', 'Motion Blur'],
+        'Editorial/ Blog': ['Mesh', 'Pen Plotter', 'Procedural', 'Line Art'],
+        'Social Media': ['Kinetic Type', '3D WebGL', 'Raster/Matrix', 'ASCII'],
+        'Data Viz': ['Flow Fields', 'Particle Systems', 'Generative Data Viz']
+      };
+
+      const styleToMode = {
+        'Noise Shader': 'bio',
+        'Procedural': 'lines',
+        'Raster/Matrix': 'cube',
+        '3D WebGL': 'shader',
+        'Flow Fields': 'flow',
+        'ASCII': 'mesh',
+        'Mesh': 'mesh' 
+      };
+
+      function buildControls(modeName) {
+        const container = document.getElementById('dynamic-controls');
+        container.innerHTML = ''; 
+
+        function createSlider(labelText, min, max, step, initialValue, onChange) {
+          const group = document.createElement('div');
+          group.className = 'control-group';
+          
+          const label = document.createElement('label');
+          const nameSpan = document.createElement('span');
+          nameSpan.textContent = labelText;
+          const valSpan = document.createElement('span');
+          valSpan.textContent = initialValue;
+          label.appendChild(nameSpan);
+          label.appendChild(valSpan);
+
+          const slider = document.createElement('input');
+          slider.type = 'range';
+          slider.min = min;
+          slider.max = max;
+          slider.step = step;
+          slider.value = initialValue;
+
+          slider.addEventListener('input', (e) => {
+            const val = parseFloat(e.target.value);
+            valSpan.textContent = val;
+            onChange(val);
+          });
+
+          group.appendChild(label);
+          group.appendChild(slider);
+          container.appendChild(group);
+        }
+
+        function createColorPicker(labelText, initialValue, onChange) {
+          const group = document.createElement('div');
+          group.className = 'control-group color-group';
+          
+          const label = document.createElement('label');
+          const nameSpan = document.createElement('span');
+          nameSpan.textContent = labelText;
+
+          const picker = document.createElement('input');
+          picker.type = 'color';
+          picker.value = initialValue;
+
+          picker.addEventListener('input', (e) => {
+            onChange(e.target.value);
+          });
+
+          label.appendChild(nameSpan);
+          label.appendChild(picker);
+          group.appendChild(label);
+          container.appendChild(group);
+        }
+
+        if (modeName === 'cube') {
+          createColorPicker('Background', bgColor, (val) => { bgColor = val; });
+          createColorPicker('Line Color', lineColor, (val) => { lineColor = val; strokeC = color(val); });
+          createColorPicker('Fill Color', fillColor, (val) => { fillColor = val; fillC = color(val); });
+          createColorPicker('Accent Color', accentColor, (val) => { accentColor = val; accentC = color(val); });
+          createSlider('Density', 0.2, 1.2, 0.05, densityBoost, (val) => { densityBoost = val; });
+          createSlider('Min Size', 2, 20, 1, minRectSize, (val) => { minRectSize = val; generateQuadtreePattern(); });
+        } 
+        else if (modeName === 'lines') {
+          createColorPicker('Line Color', linesSolidColor, (val) => { linesSolidColor = val; });
+          createColorPicker('Background', linesBgColor, (val) => { linesBgColor = val; });
+          createSlider('Connect Radius', 30, 120, 1, linesConnectDist, (val) => { linesConnectDist = val; });
+          createSlider('Drift Speed', 0.1, 3.0, 0.1, linesDriftSpeed, (val) => { linesDriftSpeed = val; });
+        } 
+        else if (modeName === 'flow') {
+          // Added Background control
+          createColorPicker('Background', flowBgColor, (val) => { flowBgColor = val; needsClear = true; });
+          createColorPicker('Color 1', flowColor1, (val) => { flowColor1 = val; updateFlowColors(); initParticles(); needsClear = true; });
+          createColorPicker('Color 2', flowColor2, (val) => { flowColor2 = val; updateFlowColors(); initParticles(); needsClear = true; });
+          createColorPicker('Color 3', flowColor3, (val) => { flowColor3 = val; updateFlowColors(); initParticles(); needsClear = true; });
+          createColorPicker('Color 4', flowColor4, (val) => { flowColor4 = val; updateFlowColors(); initParticles(); needsClear = true; });
+          createSlider('Curve Scale', 0.0005, 0.005, 0.0005, flowCurveScale, (val) => { flowCurveScale = val; initParticles(); needsClear = true; });
+          createSlider('Speed', 0.5, 3.0, 0.1, flowSpeedMult, (val) => { flowSpeedMult = val; initParticles(); needsClear = true; });
+        }
+        else if (modeName === 'mesh') {
+          createColorPicker('Mesh Color', meshPrimaryColor, (val) => { meshPrimaryColor = val; });
+          createSlider('Glyph Density', 10, 90, 1, logoInternalDensity, (val) => { logoInternalDensity = val; buildCellData(); });
+          createSlider('Bg Density', 0, 10, 1, backgroundDensity, (val) => { backgroundDensity = val; buildCellData(); });
+        }
+        else if (modeName === 'bio') {
+          createColorPicker('Peak Color', bioPeakColor, (val) => { bioPeakColor = val; });
+          createColorPicker('Valley Color', bioValleyColor, (val) => { bioValleyColor = val; });
+          createColorPicker('Scatter Color', bioScatterColor, (val) => { bioScatterColor = val; });
+          createSlider('Feed Rate', 0.010, 0.060, 0.001, bioFeed, (val) => { bioFeed = val; });
+          createSlider('Kill Rate', 0.040, 0.080, 0.001, bioKill, (val) => { bioKill = val; });
+          createSlider('Sim Speed', 1, 10, 1, bioSpeed, (val) => { bioSpeed = val; });
+        } 
+        else if (modeName === 'shader') {
+          createColorPicker('Background', shaderBgColor, (val) => { shaderBgColor = val; });
+          createColorPicker('Base Color', shaderBaseColor, (val) => { shaderBaseColor = val; });
+          createColorPicker('Accent 1', shaderAccentColor, (val) => { shaderAccentColor = val; });
+          createColorPicker('Accent 2', shaderAccentColor2, (val) => { shaderAccentColor2 = val; });
+          createSlider('Zoom', 2.0, 20.0, 1.0, shaderZoom, (val) => { shaderZoom = val; });
+          createSlider('Time Speed', 0.1, 3.0, 0.1, shaderTimeMult, (val) => { shaderTimeMult = val; });
+        }
+      }
+
+      function renderArtStyles(category) {
+        const styles = categoryMapping[category] || categoryMapping['Logo'];
+        artStylesList.innerHTML = '';
+        styles.forEach(style => {
+          const li = document.createElement('li');
+          li.textContent = style;
+          artStylesList.appendChild(li);
+        });
+      }
+
+      toggleBtn.addEventListener('click', (e) => {
+        e.stopPropagation(); 
+        dropdownMenu.classList.toggle('show');
+      });
+
+      document.addEventListener('click', (e) => {
+        if (!dropdownMenu.contains(e.target) && e.target !== toggleBtn) {
+          dropdownMenu.classList.remove('show');
+        }
+      });
+
+      dropdownItems.forEach(item => {
+        item.addEventListener('click', (e) => {
+          e.stopPropagation();
+
+          dropdownItems.forEach(li => li.classList.remove('active'));
+          item.classList.add('active');
+          const selectedCategory = item.textContent.trim();
+          toggleBtnText.textContent = selectedCategory;
+
+          dropdownMenu.classList.remove('show');
+
+          controlsPanelContainer.style.display = 'none';
+          exportPanelContainer.style.display = 'none';
+          
+          if (selectedCategory === 'Logo') {
+            if (typeof setMode === 'function') setMode(modes[currentModeIndex], false); 
+            if (typeof resumeCycle === 'function') resumeCycle();
+            renderArtStyles(selectedCategory);
+          } else {
+            if (typeof pauseCycle === 'function') pauseCycle(); 
+            if (typeof setMode === 'function') setMode('none', true); 
+            renderArtStyles(selectedCategory);
+          }
+        });
+      });
+
+      artStylesList.addEventListener('click', (e) => {
+        if (e.target.tagName === 'LI') {
+          const clickedItem = e.target;
+          const isActive = clickedItem.classList.contains('active');
+          const selectedText = clickedItem.textContent.trim();
+          
+          const currentCategory = toggleBtnText.textContent.trim();
+          const shouldPreserveWholePage = (currentCategory !== 'Logo');
+
+          const allItems = artStylesList.querySelectorAll('li');
+          allItems.forEach(li => li.classList.remove('active'));
+
+          if (isActive) {
+            controlsPanelContainer.style.display = 'none';
+            exportPanelContainer.style.display = 'none';
+            
+            if (currentCategory === 'Logo') {
+                if (typeof setMode === 'function') setMode(modes[currentModeIndex], false); 
+                if (typeof resumeCycle === 'function') resumeCycle(); 
+            } else {
+                if (typeof setMode === 'function') setMode('none', true);
+            }
+          } else {
+            clickedItem.classList.add('active');
+            controlsPanelContainer.style.display = 'block';
+            exportPanelContainer.style.display = 'block';
+            
+            const modeName = styleToMode[selectedText];
+            if (modeName && typeof setMode === 'function') {
+              if (typeof pauseCycle === 'function') pauseCycle(); 
+              setMode(modeName, shouldPreserveWholePage); 
+              buildControls(modeName);
+            }
+          }
+        }
+      });
+    });
+  </script>
+</body>
+</html>
